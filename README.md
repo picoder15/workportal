@@ -1,3 +1,5 @@
+README for the WorkPortal repository,
+
 ---
 
 # WorkPortal 🚀
@@ -274,4 +276,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 **WorkPortal** – because your knowledge should grow with you, not be locked in a cloud.
 
 ---
-
+ help with any specific section or if you need additional features documented.
