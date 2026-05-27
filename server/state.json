@@ -1,11 +1,11 @@
 {
   "pages": [],
   "sidebarTitle": "My Workspace",
-  "sidebarTitleLocked": false,
+  "sidebarTitleLocked": true,
   "activePageId": null,
   "activeSubPageId": null,
-  "theme": "light",
-  "currentView": "editor",
+  "theme": "dark",
+  "currentView": "dashboard",
   "recentPages": [],
   "shortcuts": [
     {
@@ -87,5 +87,5 @@
     }
   ],
   "pinnedPages": [],
-  "_updatedAt": 1779811813855
+  "_updatedAt": 1779881487949
 }

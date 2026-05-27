@@ -1,25 +1,19 @@
 #!/usr/bin/env node
 
-import { spawn, execSync } from 'child_process';
-import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from 'fs';
+import { spawn, exec } from 'child_process';
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = __dirname;  // because portal.js is at root
-const PID_FILE = path.join(PROJECT_ROOT, '.portal.pid');
-const LOG_FILE = path.join(PROJECT_ROOT, 'portal.log');
-const BACKEND_DIR = path.join(PROJECT_ROOT, 'server');
-const FRONTEND_DIR = PROJECT_ROOT;
+const PID_FILE = path.join(__dirname, '.portal.pid');
+const LOG_FILE = path.join(__dirname, 'portal.log');
+const BACKEND_DIR = path.join(__dirname, 'server');
+const FRONTEND_DIR = __dirname;
 
-function log(message, isError = false) {
+function log(message) {
   const timestamp = new Date().toISOString();
-  const line = `[${timestamp}] ${message}\n`;
-  if (isError) console.error(line.trim());
-  else console.log(line.trim());
-  if (process.env.PORTAL_BG) {
-    writeFileSync(LOG_FILE, line, { flag: 'a' });
-  }
+  console.log(`[${timestamp}] ${message}`);
 }
 
 function killProcess(pid) {
@@ -60,59 +54,50 @@ function status() {
   }
 }
 
-function buildFrontend() {
-  log('Building frontend...');
-  try {
-    // Ensure we are in the frontend directory
-    process.chdir(FRONTEND_DIR);
-    execSync('npm run build', { stdio: 'inherit' });
-    log('Frontend build successful');
-  } catch (err) {
-    log('Frontend build failed', true);
-    throw err;
-  }
-}
-
 function startProduction(port, foreground = false) {
   const env = { ...process.env, PORT: port.toString() };
   const backendPath = path.join(BACKEND_DIR, 'index.js');
   const args = ['--experimental-specifier-resolution=node', backendPath];
 
-  // Build frontend first (if not in dev mode)
-  try {
-    buildFrontend();
-  } catch (err) {
-    process.exit(1);
-  }
-
-  if (foreground) {
-    const backend = spawn('node', args, { cwd: BACKEND_DIR, stdio: 'inherit', env });
-    backend.on('close', (code) => {
-      log(`Backend exited with code ${code}`);
-      if (existsSync(PID_FILE)) unlinkSync(PID_FILE);
-    });
-  } else {
-    const child = spawn('node', args, {
-      cwd: BACKEND_DIR,
-      detached: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env,
-    });
-    child.stdout.on('data', (data) => log(`[backend] ${data.toString().trim()}`));
-    child.stderr.on('data', (data) => log(`[backend error] ${data.toString().trim()}`, true));
-    child.unref();
-    const pid = child.pid;
-    writeFileSync(PID_FILE, pid.toString());
-    log(`Started backend in background with PID ${pid} on port ${port}`);
-  }
+  // Build frontend
+  log('Building frontend...');
+  const build = spawn('npm', ['run', 'build'], { cwd: FRONTEND_DIR, stdio: 'inherit' });
+  build.on('close', (code) => {
+    if (code !== 0) {
+      log('Frontend build failed');
+      process.exit(1);
+    }
+    log('Build complete. Starting backend.');
+    if (foreground) {
+      // Foreground: run with inherited stdio
+      const child = spawn('node', args, { cwd: BACKEND_DIR, stdio: 'inherit', env });
+      child.on('close', (code) => {
+        log(`Backend exited with code ${code}`);
+        if (existsSync(PID_FILE)) unlinkSync(PID_FILE);
+      });
+    } else {
+      // Background: detached, no stdio, unref so parent exits
+      const child = spawn('node', args, {
+        cwd: BACKEND_DIR,
+        detached: true,
+        stdio: 'ignore',
+        env,
+      });
+      child.unref();
+      const pid = child.pid;
+      writeFileSync(PID_FILE, pid.toString());
+      log(`Started backend in background with PID ${pid} on port ${port}`);
+      // Exit parent immediately
+      process.exit(0);
+    }
+  });
 }
 
 function startDev(port, foreground = false) {
   if (!foreground) {
-    log('Dev mode in background not recommended. Use --fg to run in foreground.', true);
+    log('Dev mode in background not supported. Use --fg.');
     process.exit(1);
   }
-
   const env = { ...process.env, PORT: port.toString() };
   const backendPath = path.join(BACKEND_DIR, 'index.js');
   const backendArgs = ['--experimental-specifier-resolution=node', backendPath];
@@ -159,8 +144,8 @@ const { command, options } = parseArgs();
 
 switch (command) {
   case 'start':
-    if (existsSync(PID_FILE)) {
-      log('Project already running. Use "stop" first.');
+    if (existsSync(PID_FILE) && !options.foreground) {
+      log('Project already running in background. Use "stop" first.');
       process.exit(1);
     }
     if (options.dev) {
@@ -192,7 +177,7 @@ switch (command) {
     break;
   default:
     console.log(`
-Portal Management Script – Run from project root
+Portal Management Script
 
 Usage:
   node portal.js start [--dev] [--port <number>] [--fg] [--bg]
@@ -205,16 +190,15 @@ Options:
   --dev         Run in development mode (Vite dev server + backend)
   --port <num>  Set HTTP port (default 8063)
   --fg          Run in foreground (logs to console)
-  --bg          Run in background (default, writes to portal.log)
+  --bg          Run in background (default, parent exits immediately)
 
 Examples:
-  node portal.js start                    # production, background, port 8063
+  node portal.js start                    # production, background
+  node portal.js start --fg               # production, foreground
   node portal.js start --dev --fg         # development, foreground
-  node portal.js start --port 3000 --fg   # production on port 3000
   node portal.js stop
-  node portal.js restart --dev
+  node portal.js restart
   node portal.js status
-  node portal.js logs
 `);
     break;
 }
