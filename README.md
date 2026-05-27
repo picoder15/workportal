@@ -1,5 +1,3 @@
-Here's a complete README for the WorkPortal GitHub repository, crafted to be welcoming, comprehensive, and ready for you to add your own visuals.
-
 ---
 
 # WorkPortal 🚀
@@ -277,22 +275,3 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-### 📸 Tips for Adding Visuals
-
-1. **Take screenshots** of the editor, graph view, dashboard, calendar, and backlinks panel.
-2. **Record a short GIF** (using tools like [LICEcap](https://www.cockos.com/licecap/) or [ScreenToGif](https://www.screentogif.com/)) showing:
-   - Creating a page and seeing it appear on a second device.
-   - Dragging nodes in the graph view.
-   - Using the internal link modal.
-3. **Upload images** to the `/docs/images/` folder in your repository and reference them like:
-   ```markdown
-   ![Editor Screenshot](/docs/images/editor.png)
-   ```
-4. **Host a demo video** on YouTube or Vimeo and embed it with:
-   ```markdown
-   [![WorkPortal Demo](https://img.youtube.com/vi/your-video-id/0.jpg)](https://www.youtube.com/watch?v=your-video-id)
-   ```
-
----
-
-Let me know if you'd like help with any specific section or if you need additional features documented.
